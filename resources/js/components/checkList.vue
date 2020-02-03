@@ -1,16 +1,6 @@
 <template>
     <el-container>
         <el-main>
-        <el-row type="flex" justify="end">
-            <el-button
-            type="success"
-            plain
-            round
-            icon="el-icon-plus"
-            @click="handleNew">
-                新建活动
-            </el-button>
-        </el-row>
         <el-table
         :data="lists.filter(data => !search || data.name.toLowerCase().includes(search.toLowerCase()))"
         border
@@ -36,9 +26,6 @@
                     size="mini"
                     type="success"
                     @click="handleCheck(scope.$index, scope.row)">查看</el-button>
-                    <el-button
-                    size="mini"
-                    @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -59,7 +46,6 @@
     export default {
         data() {
             return {
-                activities:{},
                 lists:[],
                 search: '',
                 total:0,
@@ -67,10 +53,6 @@
             }
         },
         created:function(){
-            // let listsTemp = JSON.parse(this.activities);
-            // this.lists = listsTemp.data;
-            // this.total = parseInt(listsTemp.total);
-            // this.per_page = parseInt(listsTemp.per_page);
             this.handleLoad();
         },
         methods: {
@@ -86,18 +68,8 @@
                 .catch(function(error){
                 }.bind(this));
             },
-            handleEdit(index, row) {
-                // console.log(index);
-                // console.log(row.id);
-                // console.log(this.$router);
-                //this.$store.commit('setActivityId', row.id);
-                this.$router.push({path:'/activity', query:{id: row.id}});
-            },
-            handleNew(){
-                this.$router.push({path:'/activity'});
-            },
             handleCheck(index, row) {
-                console.log(index, row);
+                this.$router.push({path:'/checkactivitylist', query:{id: row.id}});
             }
         },
     }

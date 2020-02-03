@@ -3592,6 +3592,38 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -3606,14 +3638,16 @@ __webpack_require__.r(__webpack_exports__);
       },
       datetimeVal: [new Date(), new Date()],
       filelist: [],
-      topimg: "",
+      //topimg:"",
       tagOptions: [],
       multiOptionTypes: ['radio', 'checkbox', 'select'],
       //dialog var
       dialogVisible: false,
       childFormitemDialog: false,
       formitemMoveDirect: "1",
+      //1向下
       formitemMoveLines: 0,
+      //移动行数
       activityLine: 0,
       parentsLine: 0,
       //子项排序时需要
@@ -3626,46 +3660,67 @@ __webpack_require__.r(__webpack_exports__);
   mounted: function mounted() {
     if (this.activityId) {
       this.handleLoad();
+    } else {
+      this.loadFormtags();
     }
   },
   methods: {
     //加载数据
     handleLoad: function handleLoad() {
-      var url = "http://127.0.0.1:8000/api/activities/getActivity/" + this.activityId;
+      var url = this.GLOBAL.srvUrl + "activities/getActivity/" + this.activityId;
       axios.get(url).then(function (data) {
-        this.topimg = "http://127.0.0.1:8000/uploads/" + data.data.activity.topimg;
         this.pushActivity(data.data.activity);
+        this.pushFormtags(data.data.formtags);
+      }.bind(this))["catch"](function (error) {}.bind(this));
+    },
+    //加载标签类型列表
+    loadFormtags: function loadFormtags() {
+      var url = this.GLOBAL.srvUrl + "activities/getFormtags";
+      axios.get(url).then(function (data) {
         this.pushFormtags(data.data.formtags);
       }.bind(this))["catch"](function (error) {}.bind(this));
     },
     //规范数据格式
     pushActivity: function pushActivity(activity) {
+      var that = this;
       this.activity.id = activity.id;
       this.activity.title = activity.title;
       this.activity.topimg = activity.topimg;
-      this.activity.begintime = activity.begintime;
-      this.activity.endtime = activity.endtime;
+      this.datetimeVal = [new Date(activity.begintime), new Date(activity.endtime)]; // this.activity.begintime = this.datetimeVal[0];
+      // this.activity.endtime = this.datetimeVal[1];
 
       for (var i in activity.formitems) {
         var childFormitemTemp = [];
 
-        for (var j in formitems[i].childformitems) {
+        for (var j in activity.formitems[i].childformitems) {
           childFormitemTemp.push({
-            id: formitems[i].childformitems[j].id,
-            name: formitems[i].childformitems[j].name,
-            order: formitems[i].childformitems[j].order,
-            defaultflag: formitems[i].childformitems[j].defaultflag
+            id: activity.formitems[i].childformitems[j].id,
+            name: activity.formitems[i].childformitems[j].name,
+            order: activity.formitems[i].childformitems[j].order,
+            defaultflag: activity.formitems[i].childformitems[j].defaultflag
           });
         }
 
+        var formtagnameArr = activity.formitems[i].formtagname.split(",");
+        var mediaEx = activity.formitems[i].media_ex.split(",");
+        var mediaCount = parseInt(mediaEx.splice(-1)[0]);
+
+        for (var k = 0; k < mediaEx.length; k++) {
+          mediaEx[k] = mediaEx[k] == "1" ? true : false;
+        }
+
         this.activity.formitems.push({
+          id: activity.formitems[i].id,
           name: activity.formitems[i].name,
           activities_id: activity.formitems[i].activities_id,
-          formtagname: activity.formitems[i].formtagname,
+          formtagname: activity.formitems[i].formtagname.split(","),
           need: activity.formitems[i].need,
           order: activity.formitems[i].order,
-          showAddChildBtn: this.multiOptionTypes.indexOf(activity.formitems[i].formtagname) > -1,
-          childformitems: childitemTemp
+          mediaCount: mediaCount,
+          mediaOptions: mediaEx,
+          showAddChildBtn: that.multiOptionTypes.indexOf(activity.formitems[i].formtagname.split(",").slice(-1)[0]) > -1,
+          showMediaOption: activity.formitems[i].formtagname.split(",").indexOf("media") > -1,
+          childformitems: childFormitemTemp
         });
       }
     },
@@ -3695,6 +3750,7 @@ __webpack_require__.r(__webpack_exports__);
     //添加选项
     addFormitem: function addFormitem() {
       var formitemTemp = {
+        id: 0,
         name: '',
         activities_id: this.activityId,
         formtag_id: null,
@@ -3702,6 +3758,11 @@ __webpack_require__.r(__webpack_exports__);
         need: 0,
         order: this.activity.formitems.length + 1,
         showAddChildBtn: false,
+        showMediaOption: false,
+        mediaCount: 0,
+        //数量
+        mediaOptions: [0, 0, 0],
+        //图片,视频,音频
         childformitems: []
       };
       this.activity.formitems.push(formitemTemp);
@@ -3713,9 +3774,11 @@ __webpack_require__.r(__webpack_exports__);
     //添加子项
     addChilditem: function addChilditem(index) {
       var childitemTemp = {
+        id: 0,
         name: '',
         formitem_id: index,
-        order: this.activity.formitems[index].childformitems.length + 1
+        order: this.activity.formitems[index].childformitems.length + 1,
+        defaultflag: 0
       };
       this.activity.formitems[index].childformitems.push(childitemTemp);
     },
@@ -3725,10 +3788,12 @@ __webpack_require__.r(__webpack_exports__);
     },
     //根据选择输入类型显示添加子项按钮与否
     handleChange: function handleChange(formitemName, index) {
+      console.log(formitemName);
       var intersection = this.multiOptionTypes.filter(function (val) {
         return formitemName.indexOf(val) > -1;
       });
       this.activity.formitems[index].showAddChildBtn = intersection.length > 0 ? true : false;
+      this.activity.formitems[index].showMediaOption = formitemName.indexOf("media") > -1;
     },
     //排序对话框函数
     //1.1、初始化并显示选项排序对话框
@@ -3745,7 +3810,7 @@ __webpack_require__.r(__webpack_exports__);
       this.formitemMoveLines = 0;
       this.activityLine = cindex;
       this.parentsLine = index;
-      this.moveMax = this.activity.formitems[index].length - cindex - 1;
+      this.moveMax = this.activity.formitems[index].childformitems.length - cindex - 1;
       this.dialogVisible = true;
     },
     //2、排序上移下移切换
@@ -3791,15 +3856,252 @@ __webpack_require__.r(__webpack_exports__);
 
       this.dialogVisible = false;
     },
-    checkUpload: function checkUpload() {},
-    uploadSuccess: function uploadSuccess(res, file) {
-      console.log("res" + res);
-      console.log("file:" + file);
+    //开始和结束时间确定
+    datetimeChange: function datetimeChange() {// this.activity.begintime = this.datetimeVal[0];
+      // this.activity.endtime = this.datetimeVal[1];
     },
+    //媒体数量
+    mediaCountChange: function mediaCountChange() {},
+    //封面图片上传成功返回
+    uploadSuccess: function uploadSuccess(res) {
+      this.activity.topimg = res.imageSrcs;
+    },
+    //删除封面图片
+    delTopimg: function delTopimg() {
+      this.activity.topimg = "";
+    },
+    //提交数据
     onSubmit: function onSubmit() {
-      console.log('submit!');
+      this.activity.begintime = this.datetimeVal[0];
+      this.activity.endtime = this.datetimeVal[1];
+      var url = this.GLOBAL.srvUrl + "activities/storeActivity";
+      var that = this;
+      axios.post(url, this.activity).then(function (data) {
+        that.$router.push({
+          path: '/'
+        });
+        that.$message({
+          showClose: true,
+          message: "活动操作成功！",
+          type: 'success'
+        });
+      }.bind(this))["catch"](function (error) {}.bind(this));
+    },
+    //取消
+    onCancle: function onCancle() {
+      this.$router.go(-1);
     }
   }
+});
+
+/***/ }),
+
+/***/ "./node_modules/_babel-loader@8.0.6@babel-loader/lib/index.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkActivityList.vue?vue&type=script&lang=js&":
+/*!*******************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/_babel-loader@8.0.6@babel-loader/lib??ref--4-0!./node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./resources/js/components/checkActivityList.vue?vue&type=script&lang=js& ***!
+  \*******************************************************************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+/* harmony default export */ __webpack_exports__["default"] = ({
+  data: function data() {
+    return {
+      activityId: 0,
+      lists: [],
+      total: 0,
+      per_page: 15,
+      title: ''
+    };
+  },
+  created: function created() {
+    this.activityId = this.$route.query.id;
+  },
+  mounted: function mounted() {
+    this.loadEnrollinfos();
+  },
+  methods: {
+    loadEnrollinfos: function loadEnrollinfos() {
+      var url = this.GLOBAL.srvUrl + "enrollinfos/getEnrollinfos/" + this.activityId;
+      axios.get(url).then(function (data) {
+        var listsTemp = data.data.enrollinfos;
+        this.lists = listsTemp.infos;
+        this.total = parseInt(listsTemp.total);
+        this.per_page = parseInt(listsTemp.per_page);
+        this.title = listsTemp.title;
+        console.log(this.lists);
+      }.bind(this))["catch"](function (error) {}.bind(this));
+    },
+    indexMethod: function indexMethod(index) {
+      return index + 1;
+    },
+    updateRead: function updateRead(scope) {
+      var index = scope.$index;
+      this.lists[index].readflag = !this.lists[index].readflag;
+      var url = this.GLOBAL.srvUrl + "enrollinfos/updateReadflag/" + scope.row.id;
+      axios.get(url).then(function (data) {}.bind(this))["catch"](function (error) {}.bind(this));
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./node_modules/_babel-loader@8.0.6@babel-loader/lib/index.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkList.vue?vue&type=script&lang=js&":
+/*!***********************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/_babel-loader@8.0.6@babel-loader/lib??ref--4-0!./node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./resources/js/components/checkList.vue?vue&type=script&lang=js& ***!
+  \***********************************************************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+/* harmony default export */ __webpack_exports__["default"] = ({
+  data: function data() {
+    return {
+      lists: [],
+      search: '',
+      total: 0,
+      per_page: 15
+    };
+  },
+  created: function created() {
+    this.handleLoad();
+  },
+  methods: {
+    handleLoad: function handleLoad() {
+      var url = this.GLOBAL.srvUrl + "activities/list";
+      axios.get(url).then(function (data) {
+        var listsTemp = data.data;
+        this.lists = listsTemp.data;
+        this.total = parseInt(listsTemp.total);
+        this.per_page = parseInt(listsTemp.per_page);
+      }.bind(this))["catch"](function (error) {}.bind(this));
+    },
+    handleCheck: function handleCheck(index, row) {
+      this.$router.push({
+        path: '/checkactivitylist',
+        query: {
+          id: row.id
+        }
+      });
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./node_modules/_babel-loader@8.0.6@babel-loader/lib/index.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/global_.vue?vue&type=script&lang=js&":
+/*!*********************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/_babel-loader@8.0.6@babel-loader/lib??ref--4-0!./node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./resources/js/components/global_.vue?vue&type=script&lang=js& ***!
+  \*********************************************************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+var srvUrl = "http://127.0.0.1:8000/api/";
+/* harmony default export */ __webpack_exports__["default"] = ({
+  srvUrl: srvUrl
 });
 
 /***/ }),
@@ -3813,6 +4115,11 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
 //
 //
 //
@@ -3884,7 +4191,7 @@ __webpack_require__.r(__webpack_exports__);
   },
   methods: {
     handleLoad: function handleLoad() {
-      var url = "http://127.0.0.1:8000/api/activities/list";
+      var url = this.GLOBAL.srvUrl + "activities/list";
       axios.get(url).then(function (data) {
         var listsTemp = data.data;
         this.lists = listsTemp.data;
@@ -3902,6 +4209,11 @@ __webpack_require__.r(__webpack_exports__);
         query: {
           id: row.id
         }
+      });
+    },
+    handleNew: function handleNew() {
+      this.$router.push({
+        path: '/activity'
       });
     },
     handleCheck: function handleCheck(index, row) {
@@ -75381,6 +75693,7 @@ var render = function() {
                       "start-placeholder": "开始日期",
                       "end-placeholder": "结束日期"
                     },
+                    on: { change: _vm.datetimeChange },
                     model: {
                       value: _vm.datetimeVal,
                       callback: function($$v) {
@@ -75397,22 +75710,54 @@ var render = function() {
                 "el-form-item",
                 { attrs: { label: "封面图片" } },
                 [
-                  _c(
-                    "el-row",
-                    [
-                      _c(
-                        "el-col",
-                        { attrs: { span: 12 } },
+                  _vm.activity.topimg
+                    ? _c(
+                        "el-row",
                         [
-                          _vm.topimg
-                            ? _c("el-image", { attrs: { src: _vm.topimg } })
-                            : _vm._e()
+                          _c(
+                            "el-col",
+                            { attrs: { span: 12 } },
+                            [
+                              _c("el-image", {
+                                attrs: { src: _vm.activity.topimg }
+                              })
+                            ],
+                            1
+                          )
                         ],
                         1
                       )
-                    ],
-                    1
-                  ),
+                    : _vm._e(),
+                  _vm._v(" "),
+                  _vm.activity.topimg
+                    ? _c(
+                        "el-row",
+                        [
+                          _c(
+                            "el-col",
+                            { attrs: { span: 12 } },
+                            [
+                              _c(
+                                "el-button",
+                                {
+                                  staticStyle: { width: "100%" },
+                                  attrs: {
+                                    plain: "",
+                                    size: "mini",
+                                    type: "danger",
+                                    icon: "el-icon-delete"
+                                  },
+                                  on: { click: _vm.delTopimg }
+                                },
+                                [_vm._v("删除")]
+                              )
+                            ],
+                            1
+                          )
+                        ],
+                        1
+                      )
+                    : _vm._e(),
                   _vm._v(" "),
                   _c(
                     "el-row",
@@ -75422,10 +75767,8 @@ var render = function() {
                         attrs: {
                           action:
                             "http://127.0.0.1:8000/api/images/uploadImgFileApi",
-                          limit: 1,
                           "file-list": _vm.filelist,
                           "show-file-list": false,
-                          "before-upload": _vm.checkUpload,
                           "on-success": _vm.uploadSuccess
                         }
                       })
@@ -75436,280 +75779,435 @@ var render = function() {
                 1
               ),
               _vm._v(" "),
-              _c("el-divider", [
-                _c("span", { staticStyle: { color: "#409EFF" } }, [
-                  _vm._v("更多信息")
-                ])
-              ]),
-              _vm._v(" "),
-              _vm._l(_vm.activity.formitems, function(formitem, index) {
-                return _c(
-                  "el-form-item",
-                  { key: index, attrs: { label: "选项" + (index + 1) } },
-                  [
-                    _c(
-                      "el-row",
-                      { attrs: { gutter: 10 } },
-                      [
-                        _c(
-                          "el-col",
-                          { attrs: { span: 13 } },
-                          [
-                            _c("el-input", {
-                              model: {
-                                value: formitem.name,
-                                callback: function($$v) {
-                                  _vm.$set(formitem, "name", $$v)
-                                },
-                                expression: "formitem.name"
-                              }
-                            })
-                          ],
-                          1
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "el-col",
-                          { attrs: { span: 3 } },
-                          [
-                            _c("el-cascader", {
-                              attrs: {
-                                options: _vm.tagOptions,
-                                "show-all-levels": false
-                              },
-                              on: {
-                                change: function($event) {
-                                  return _vm.handleChange(
-                                    formitem.formtagname,
-                                    index
-                                  )
-                                }
-                              },
-                              model: {
-                                value: formitem.formtagname,
-                                callback: function($$v) {
-                                  _vm.$set(formitem, "formtagname", $$v)
-                                },
-                                expression: "formitem.formtagname"
-                              }
-                            })
-                          ],
-                          1
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "el-col",
-                          { attrs: { span: 2 } },
+              _c(
+                "el-collapse",
+                { attrs: { accordion: "" } },
+                [
+                  _c(
+                    "el-collapse-item",
+                    [
+                      _c(
+                        "template",
+                        { slot: "title" },
+                        [
+                          _c("el-divider", [
+                            _c("span", { staticStyle: { color: "#409EFF" } }, [
+                              _c("i", { staticClass: "el-icon-thumb" }),
+                              _vm._v("更多选项信息"),
+                              _c("i", { staticClass: "el-icon-edit-outline" })
+                            ])
+                          ])
+                        ],
+                        1
+                      ),
+                      _vm._v(" "),
+                      _vm._l(_vm.activity.formitems, function(formitem, index) {
+                        return _c(
+                          "el-form-item",
+                          {
+                            key: index,
+                            attrs: { label: "选项" + (index + 1) }
+                          },
                           [
                             _c(
-                              "el-select",
-                              {
-                                model: {
-                                  value: formitem.need,
-                                  callback: function($$v) {
-                                    _vm.$set(formitem, "need", $$v)
-                                  },
-                                  expression: "formitem.need"
-                                }
-                              },
+                              "el-row",
+                              { attrs: { gutter: 10 } },
                               [
-                                _c("el-option", {
-                                  attrs: { label: "选填", value: 0 }
-                                }),
+                                _c(
+                                  "el-col",
+                                  { attrs: { span: 13 } },
+                                  [
+                                    _c("el-input", {
+                                      model: {
+                                        value: formitem.name,
+                                        callback: function($$v) {
+                                          _vm.$set(formitem, "name", $$v)
+                                        },
+                                        expression: "formitem.name"
+                                      }
+                                    })
+                                  ],
+                                  1
+                                ),
                                 _vm._v(" "),
-                                _c("el-option", {
-                                  attrs: { label: "必填", value: 1 }
-                                })
+                                _c(
+                                  "el-col",
+                                  { attrs: { span: 3 } },
+                                  [
+                                    _c("el-cascader", {
+                                      attrs: {
+                                        options: _vm.tagOptions,
+                                        "show-all-levels": false
+                                      },
+                                      on: {
+                                        change: function($event) {
+                                          return _vm.handleChange(
+                                            formitem.formtagname,
+                                            index
+                                          )
+                                        }
+                                      },
+                                      model: {
+                                        value: formitem.formtagname,
+                                        callback: function($$v) {
+                                          _vm.$set(formitem, "formtagname", $$v)
+                                        },
+                                        expression: "formitem.formtagname"
+                                      }
+                                    })
+                                  ],
+                                  1
+                                ),
+                                _vm._v(" "),
+                                _c(
+                                  "el-col",
+                                  { attrs: { span: 2 } },
+                                  [
+                                    _c(
+                                      "el-select",
+                                      {
+                                        model: {
+                                          value: formitem.need,
+                                          callback: function($$v) {
+                                            _vm.$set(formitem, "need", $$v)
+                                          },
+                                          expression: "formitem.need"
+                                        }
+                                      },
+                                      [
+                                        _c("el-option", {
+                                          attrs: { label: "选填", value: 0 }
+                                        }),
+                                        _vm._v(" "),
+                                        _c("el-option", {
+                                          attrs: { label: "必填", value: 1 }
+                                        })
+                                      ],
+                                      1
+                                    )
+                                  ],
+                                  1
+                                ),
+                                _vm._v(" "),
+                                _c(
+                                  "el-col",
+                                  { attrs: { span: 1.5 } },
+                                  [
+                                    _c(
+                                      "el-button",
+                                      {
+                                        on: {
+                                          click: function($event) {
+                                            return _vm.handleOrder(index)
+                                          }
+                                        }
+                                      },
+                                      [_vm._v("排序")]
+                                    )
+                                  ],
+                                  1
+                                ),
+                                _vm._v(" "),
+                                _c(
+                                  "el-col",
+                                  { attrs: { span: 1.5 } },
+                                  [
+                                    _c(
+                                      "el-button",
+                                      {
+                                        attrs: { type: "danger" },
+                                        on: {
+                                          click: function($event) {
+                                            return _vm.delFormitem(index)
+                                          }
+                                        }
+                                      },
+                                      [_vm._v("删除")]
+                                    )
+                                  ],
+                                  1
+                                ),
+                                _vm._v(" "),
+                                _c(
+                                  "el-col",
+                                  { attrs: { span: 2.5 } },
+                                  [
+                                    formitem.showAddChildBtn
+                                      ? _c(
+                                          "el-button",
+                                          {
+                                            staticStyle: { width: "100%" },
+                                            attrs: { type: "warning" },
+                                            on: {
+                                              click: function($event) {
+                                                return _vm.addChilditem(index)
+                                              }
+                                            }
+                                          },
+                                          [
+                                            _vm._v(
+                                              "\n                            添加子项\n                            "
+                                            )
+                                          ]
+                                        )
+                                      : _vm._e()
+                                  ],
+                                  1
+                                )
                               ],
                               1
-                            )
-                          ],
-                          1
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "el-col",
-                          { attrs: { span: 1.5 } },
-                          [
-                            _c(
-                              "el-button",
-                              {
-                                on: {
-                                  click: function($event) {
-                                    return _vm.handleOrder(index)
-                                  }
-                                }
-                              },
-                              [_vm._v("排序")]
-                            )
-                          ],
-                          1
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "el-col",
-                          { attrs: { span: 1.5 } },
-                          [
-                            _c(
-                              "el-button",
-                              {
-                                attrs: { type: "danger" },
-                                on: {
-                                  click: function($event) {
-                                    return _vm.delFormitem(index)
-                                  }
-                                }
-                              },
-                              [_vm._v("删除")]
-                            )
-                          ],
-                          1
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "el-col",
-                          { attrs: { span: 2.5 } },
-                          [
-                            formitem.showAddChildBtn
+                            ),
+                            _vm._v(" "),
+                            formitem.showMediaOption
                               ? _c(
-                                  "el-button",
-                                  {
-                                    staticStyle: { width: "100%" },
-                                    attrs: { type: "warning" },
-                                    on: {
-                                      click: function($event) {
-                                        return _vm.addChilditem(index)
-                                      }
-                                    }
-                                  },
+                                  "el-row",
+                                  { attrs: { gutter: 10 } },
                                   [
-                                    _vm._v(
-                                      "\n                        添加子项\n                        "
-                                    )
-                                  ]
+                                    _c(
+                                      "el-checkbox",
+                                      {
+                                        model: {
+                                          value: formitem.mediaOptions[0],
+                                          callback: function($$v) {
+                                            _vm.$set(
+                                              formitem.mediaOptions,
+                                              0,
+                                              $$v
+                                            )
+                                          },
+                                          expression: "formitem.mediaOptions[0]"
+                                        }
+                                      },
+                                      [_vm._v("图片")]
+                                    ),
+                                    _vm._v(" "),
+                                    _c(
+                                      "el-checkbox",
+                                      {
+                                        model: {
+                                          value: formitem.mediaOptions[1],
+                                          callback: function($$v) {
+                                            _vm.$set(
+                                              formitem.mediaOptions,
+                                              1,
+                                              $$v
+                                            )
+                                          },
+                                          expression: "formitem.mediaOptions[1]"
+                                        }
+                                      },
+                                      [_vm._v("视频")]
+                                    ),
+                                    _vm._v(" "),
+                                    _c(
+                                      "el-checkbox",
+                                      {
+                                        model: {
+                                          value: formitem.mediaOptions[2],
+                                          callback: function($$v) {
+                                            _vm.$set(
+                                              formitem.mediaOptions,
+                                              2,
+                                              $$v
+                                            )
+                                          },
+                                          expression: "formitem.mediaOptions[2]"
+                                        }
+                                      },
+                                      [_vm._v("音频")]
+                                    ),
+                                    _vm._v(" "),
+                                    _c("el-divider", {
+                                      attrs: { direction: "vertical" }
+                                    }),
+                                    _vm._v(" "),
+                                    _c(
+                                      "span",
+                                      { staticStyle: { color: "#606266" } },
+                                      [_vm._v("最大上传数量")]
+                                    ),
+                                    _vm._v(" "),
+                                    _c("el-input-number", {
+                                      attrs: { min: 0, max: 10 },
+                                      on: { change: _vm.mediaCountChange },
+                                      model: {
+                                        value: formitem.mediaCount,
+                                        callback: function($$v) {
+                                          _vm.$set(formitem, "mediaCount", $$v)
+                                        },
+                                        expression: "formitem.mediaCount"
+                                      }
+                                    })
+                                  ],
+                                  1
                                 )
-                              : _vm._e()
-                          ],
-                          1
-                        )
-                      ],
-                      1
-                    ),
-                    _vm._v(" "),
-                    _vm._l(formitem.childformitems, function(
-                      childitem,
-                      cindex
-                    ) {
-                      return _c(
-                        "el-row",
-                        {
-                          key: cindex,
-                          staticStyle: { padding: "5px 0" },
-                          attrs: { gutter: 10 }
-                        },
-                        [
-                          _c("el-col", { attrs: { span: 2, offset: 2 } }, [
-                            _vm._v("子项" + _vm._s(cindex + 1))
-                          ]),
-                          _vm._v(" "),
-                          _c(
-                            "el-col",
-                            { attrs: { span: 10 } },
-                            [
-                              _c("el-input", {
-                                model: {
-                                  value: childitem.name,
-                                  callback: function($$v) {
-                                    _vm.$set(childitem, "name", $$v)
-                                  },
-                                  expression: "childitem.name"
-                                }
-                              })
-                            ],
-                            1
-                          ),
-                          _vm._v(" "),
-                          _c(
-                            "el-col",
-                            { attrs: { span: 1.5 } },
-                            [
-                              _c(
-                                "el-button",
+                              : _vm._e(),
+                            _vm._v(" "),
+                            _vm._l(formitem.childformitems, function(
+                              childitem,
+                              cindex
+                            ) {
+                              return _c(
+                                "el-row",
                                 {
-                                  attrs: { size: "small" },
-                                  on: {
-                                    click: function($event) {
-                                      return _vm.handleChildOrder(index, cindex)
-                                    }
-                                  }
+                                  key: cindex,
+                                  staticStyle: { padding: "5px 0" },
+                                  attrs: { gutter: 10 }
                                 },
-                                [_vm._v("排序")]
+                                [
+                                  _c(
+                                    "el-col",
+                                    { attrs: { span: 2, offset: 2 } },
+                                    [_vm._v("子项" + _vm._s(cindex + 1))]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "el-col",
+                                    { attrs: { span: 10 } },
+                                    [
+                                      _c("el-input", {
+                                        model: {
+                                          value: childitem.name,
+                                          callback: function($$v) {
+                                            _vm.$set(childitem, "name", $$v)
+                                          },
+                                          expression: "childitem.name"
+                                        }
+                                      })
+                                    ],
+                                    1
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "el-col",
+                                    { attrs: { span: 1.5 } },
+                                    [
+                                      _c(
+                                        "el-checkbox",
+                                        {
+                                          attrs: {
+                                            checked: childitem.defaultflag
+                                              ? true
+                                              : false
+                                          },
+                                          model: {
+                                            value: childitem.defaultflag,
+                                            callback: function($$v) {
+                                              _vm.$set(
+                                                childitem,
+                                                "defaultflag",
+                                                $$v
+                                              )
+                                            },
+                                            expression: "childitem.defaultflag"
+                                          }
+                                        },
+                                        [
+                                          _vm._v(
+                                            "\n                                默选\n                            "
+                                          )
+                                        ]
+                                      )
+                                    ],
+                                    1
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "el-col",
+                                    { attrs: { span: 1.5 } },
+                                    [
+                                      _c(
+                                        "el-button",
+                                        {
+                                          attrs: { size: "small" },
+                                          on: {
+                                            click: function($event) {
+                                              return _vm.handleChildOrder(
+                                                index,
+                                                cindex
+                                              )
+                                            }
+                                          }
+                                        },
+                                        [_vm._v("排序")]
+                                      )
+                                    ],
+                                    1
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "el-col",
+                                    { attrs: { span: 2 } },
+                                    [
+                                      _c(
+                                        "el-button",
+                                        {
+                                          attrs: {
+                                            type: "danger",
+                                            size: "small"
+                                          },
+                                          on: {
+                                            click: function($event) {
+                                              return _vm.delChilditem(
+                                                index,
+                                                cindex
+                                              )
+                                            }
+                                          }
+                                        },
+                                        [_vm._v("删除")]
+                                      )
+                                    ],
+                                    1
+                                  )
+                                ],
+                                1
                               )
-                            ],
-                            1
-                          ),
-                          _vm._v(" "),
+                            })
+                          ],
+                          2
+                        )
+                      }),
+                      _vm._v(" "),
+                      _c(
+                        "el-row",
+                        { attrs: { type: "flex", justify: "center" } },
+                        [
                           _c(
                             "el-col",
-                            { attrs: { span: 2 } },
+                            { attrs: { span: 22 } },
                             [
                               _c(
                                 "el-button",
                                 {
-                                  attrs: { type: "danger", size: "small" },
-                                  on: {
-                                    click: function($event) {
-                                      return _vm.delChilditem(index, cindex)
-                                    }
-                                  }
+                                  staticStyle: { width: "100%" },
+                                  attrs: {
+                                    type: "warning",
+                                    icon: "el-icon-plus",
+                                    round: ""
+                                  },
+                                  on: { click: _vm.addFormitem }
                                 },
-                                [_vm._v("删除")]
+                                [
+                                  _vm._v(
+                                    "\n                            添加选项\n                        "
+                                  )
+                                ]
                               )
                             ],
                             1
                           )
                         ],
                         1
-                      )
-                    })
-                  ],
-                  2
-                )
-              }),
-              _vm._v(" "),
-              _c(
-                "el-row",
-                { attrs: { type: "flex", justify: "center" } },
-                [
-                  _c(
-                    "el-col",
-                    { attrs: { span: 22 } },
-                    [
-                      _c(
-                        "el-button",
-                        {
-                          staticStyle: { width: "100%" },
-                          attrs: {
-                            type: "warning",
-                            icon: "el-icon-plus",
-                            round: ""
-                          },
-                          on: { click: _vm.addFormitem }
-                        },
-                        [
-                          _vm._v(
-                            "\n                        添加选项\n                    "
-                          )
-                        ]
-                      )
+                      ),
+                      _vm._v(" "),
+                      _c("el-divider")
                     ],
-                    1
+                    2
                   )
                 ],
                 1
               ),
-              _vm._v(" "),
-              _c("el-divider"),
               _vm._v(" "),
               _c(
                 "el-form-item",
@@ -75720,13 +76218,15 @@ var render = function() {
                     [_vm._v("提交")]
                   ),
                   _vm._v(" "),
-                  _c("el-button", [_vm._v("取消")])
+                  _c("el-button", { on: { click: _vm.onCancle } }, [
+                    _vm._v("取消")
+                  ])
                 ],
                 1
               ),
               _vm._v("`\n        ")
             ],
-            2
+            1
           )
         ],
         1
@@ -75836,6 +76336,287 @@ render._withStripped = true
 
 /***/ }),
 
+/***/ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkActivityList.vue?vue&type=template&id=38aba03a&":
+/*!**********************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./resources/js/components/checkActivityList.vue?vue&type=template&id=38aba03a& ***!
+  \**********************************************************************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "el-container",
+    [
+      _c("el-header", [_vm._v(_vm._s(_vm.title))]),
+      _vm._v(" "),
+      _c(
+        "el-main",
+        [
+          _c(
+            "el-table",
+            { staticStyle: { width: "100%" }, attrs: { data: _vm.lists } },
+            [
+              _c("el-table-column", {
+                attrs: { type: "index", index: _vm.indexMethod, width: "80" }
+              }),
+              _vm._v(" "),
+              _c("el-table-column", {
+                attrs: { label: "信息" },
+                scopedSlots: _vm._u([
+                  {
+                    key: "default",
+                    fn: function(scope) {
+                      return [
+                        _c(
+                          "el-popover",
+                          { attrs: { trigger: "hover", placement: "top" } },
+                          [
+                            _vm._l(scope.row.info, function(forminfo, index) {
+                              return _c("p", { key: index }, [
+                                _vm._v(_vm._s(forminfo))
+                              ])
+                            }),
+                            _vm._v(" "),
+                            _c(
+                              "div",
+                              {
+                                staticStyle: { "font-size": "16px" },
+                                attrs: { slot: "reference" },
+                                slot: "reference"
+                              },
+                              [
+                                _vm._v(
+                                  "\n                    " +
+                                    _vm._s(scope.row.info.join(",")) +
+                                    "\n                "
+                                )
+                              ]
+                            )
+                          ],
+                          2
+                        ),
+                        _vm._v(" "),
+                        _c(
+                          "el-row",
+                          _vm._l(scope.row.media, function(media, index) {
+                            return _c(
+                              "el-col",
+                              { key: index, attrs: { span: 4 } },
+                              [
+                                _c("el-image", {
+                                  staticStyle: {
+                                    width: "100px",
+                                    height: "100px"
+                                  },
+                                  attrs: {
+                                    src: media,
+                                    "preview-src-list": scope.row.media
+                                  }
+                                })
+                              ],
+                              1
+                            )
+                          }),
+                          1
+                        )
+                      ]
+                    }
+                  }
+                ])
+              }),
+              _vm._v(" "),
+              _c("el-table-column", {
+                attrs: { label: "操作", width: "100" },
+                scopedSlots: _vm._u([
+                  {
+                    key: "default",
+                    fn: function(scope) {
+                      return [
+                        scope.row.readflag
+                          ? _c(
+                              "el-button",
+                              {
+                                attrs: {
+                                  type: "success",
+                                  round: "",
+                                  size: "mini"
+                                },
+                                on: {
+                                  click: function($event) {
+                                    return _vm.updateRead(scope)
+                                  }
+                                }
+                              },
+                              [_vm._v("已审")]
+                            )
+                          : _c(
+                              "el-button",
+                              {
+                                attrs: {
+                                  type: "info",
+                                  round: "",
+                                  size: "mini"
+                                },
+                                on: {
+                                  click: function($event) {
+                                    return _vm.updateRead(scope)
+                                  }
+                                }
+                              },
+                              [_vm._v("未审")]
+                            )
+                      ]
+                    }
+                  }
+                ])
+              })
+            ],
+            1
+          )
+        ],
+        1
+      ),
+      _vm._v(" "),
+      _c(
+        "el-footer",
+        [
+          _c("el-pagination", {
+            attrs: {
+              background: "",
+              layout: "prev, pager, next",
+              "hide-on-single-page": true,
+              "page-size": this.per_page,
+              total: this.total
+            }
+          })
+        ],
+        1
+      )
+    ],
+    1
+  )
+}
+var staticRenderFns = []
+render._withStripped = true
+
+
+
+/***/ }),
+
+/***/ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkList.vue?vue&type=template&id=438525ea&":
+/*!**************************************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./resources/js/components/checkList.vue?vue&type=template&id=438525ea& ***!
+  \**************************************************************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "el-container",
+    [
+      _c(
+        "el-main",
+        [
+          _c(
+            "el-table",
+            {
+              staticStyle: { width: "100%" },
+              attrs: {
+                data: _vm.lists.filter(function(data) {
+                  return (
+                    !_vm.search ||
+                    data.name.toLowerCase().includes(_vm.search.toLowerCase())
+                  )
+                }),
+                border: "",
+                stripe: ""
+              }
+            },
+            [
+              _c("el-table-column", {
+                attrs: {
+                  type: "index",
+                  label: "序号",
+                  width: "60",
+                  align: "center"
+                }
+              }),
+              _vm._v(" "),
+              _c("el-table-column", {
+                attrs: { prop: "title", label: "活动名称", align: "center" }
+              }),
+              _vm._v(" "),
+              _c("el-table-column", {
+                attrs: { label: "操作", width: "150", align: "center" },
+                scopedSlots: _vm._u([
+                  {
+                    key: "default",
+                    fn: function(scope) {
+                      return [
+                        _c(
+                          "el-button",
+                          {
+                            attrs: { size: "mini", type: "success" },
+                            on: {
+                              click: function($event) {
+                                return _vm.handleCheck(scope.$index, scope.row)
+                              }
+                            }
+                          },
+                          [_vm._v("查看")]
+                        )
+                      ]
+                    }
+                  }
+                ])
+              })
+            ],
+            1
+          )
+        ],
+        1
+      ),
+      _vm._v(" "),
+      _c(
+        "el-footer",
+        [
+          _c("el-pagination", {
+            attrs: {
+              background: "",
+              layout: "prev, pager, next",
+              "hide-on-single-page": true,
+              "page-size": this.per_page,
+              total: this.total
+            }
+          })
+        ],
+        1
+      )
+    ],
+    1
+  )
+}
+var staticRenderFns = []
+render._withStripped = true
+
+
+
+/***/ }),
+
 /***/ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/myList.vue?vue&type=template&id=6f5b0975&":
 /*!***********************************************************************************************************************************************************************************************************************************************!*\
   !*** ./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./resources/js/components/myList.vue?vue&type=template&id=6f5b0975& ***!
@@ -75869,7 +76650,8 @@ var render = function() {
                     plain: "",
                     round: "",
                     icon: "el-icon-plus"
-                  }
+                  },
+                  on: { click: _vm.handleNew }
                 },
                 [_vm._v("\n            新建活动\n        ")]
               )
@@ -92113,6 +92895,194 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./resources/js/components/checkActivityList.vue":
+/*!*******************************************************!*\
+  !*** ./resources/js/components/checkActivityList.vue ***!
+  \*******************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _checkActivityList_vue_vue_type_template_id_38aba03a___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./checkActivityList.vue?vue&type=template&id=38aba03a& */ "./resources/js/components/checkActivityList.vue?vue&type=template&id=38aba03a&");
+/* harmony import */ var _checkActivityList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./checkActivityList.vue?vue&type=script&lang=js& */ "./resources/js/components/checkActivityList.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_15_7_1_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../node_modules/_vue-loader@15.7.1@vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_15_7_1_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _checkActivityList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _checkActivityList_vue_vue_type_template_id_38aba03a___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _checkActivityList_vue_vue_type_template_id_38aba03a___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/components/checkActivityList.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/components/checkActivityList.vue?vue&type=script&lang=js&":
+/*!********************************************************************************!*\
+  !*** ./resources/js/components/checkActivityList.vue?vue&type=script&lang=js& ***!
+  \********************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_8_0_6_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkActivityList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/_babel-loader@8.0.6@babel-loader/lib??ref--4-0!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./checkActivityList.vue?vue&type=script&lang=js& */ "./node_modules/_babel-loader@8.0.6@babel-loader/lib/index.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkActivityList.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_8_0_6_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkActivityList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/components/checkActivityList.vue?vue&type=template&id=38aba03a&":
+/*!**************************************************************************************!*\
+  !*** ./resources/js/components/checkActivityList.vue?vue&type=template&id=38aba03a& ***!
+  \**************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_15_7_1_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkActivityList_vue_vue_type_template_id_38aba03a___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./checkActivityList.vue?vue&type=template&id=38aba03a& */ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkActivityList.vue?vue&type=template&id=38aba03a&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_15_7_1_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkActivityList_vue_vue_type_template_id_38aba03a___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_15_7_1_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkActivityList_vue_vue_type_template_id_38aba03a___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
+/***/ "./resources/js/components/checkList.vue":
+/*!***********************************************!*\
+  !*** ./resources/js/components/checkList.vue ***!
+  \***********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _checkList_vue_vue_type_template_id_438525ea___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./checkList.vue?vue&type=template&id=438525ea& */ "./resources/js/components/checkList.vue?vue&type=template&id=438525ea&");
+/* harmony import */ var _checkList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./checkList.vue?vue&type=script&lang=js& */ "./resources/js/components/checkList.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_15_7_1_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../node_modules/_vue-loader@15.7.1@vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_15_7_1_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _checkList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _checkList_vue_vue_type_template_id_438525ea___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _checkList_vue_vue_type_template_id_438525ea___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/components/checkList.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/components/checkList.vue?vue&type=script&lang=js&":
+/*!************************************************************************!*\
+  !*** ./resources/js/components/checkList.vue?vue&type=script&lang=js& ***!
+  \************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_8_0_6_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/_babel-loader@8.0.6@babel-loader/lib??ref--4-0!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./checkList.vue?vue&type=script&lang=js& */ "./node_modules/_babel-loader@8.0.6@babel-loader/lib/index.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkList.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_8_0_6_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkList_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/components/checkList.vue?vue&type=template&id=438525ea&":
+/*!******************************************************************************!*\
+  !*** ./resources/js/components/checkList.vue?vue&type=template&id=438525ea& ***!
+  \******************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_15_7_1_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkList_vue_vue_type_template_id_438525ea___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./checkList.vue?vue&type=template&id=438525ea& */ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/loaders/templateLoader.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/checkList.vue?vue&type=template&id=438525ea&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_15_7_1_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkList_vue_vue_type_template_id_438525ea___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_15_7_1_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_checkList_vue_vue_type_template_id_438525ea___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
+/***/ "./resources/js/components/global_.vue":
+/*!*********************************************!*\
+  !*** ./resources/js/components/global_.vue ***!
+  \*********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _global_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./global_.vue?vue&type=script&lang=js& */ "./resources/js/components/global_.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_15_7_1_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../node_modules/_vue-loader@15.7.1@vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/_vue-loader@15.7.1@vue-loader/lib/runtime/componentNormalizer.js");
+var render, staticRenderFns
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_15_7_1_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_1__["default"])(
+  _global_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"],
+  render,
+  staticRenderFns,
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/components/global_.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/components/global_.vue?vue&type=script&lang=js&":
+/*!**********************************************************************!*\
+  !*** ./resources/js/components/global_.vue?vue&type=script&lang=js& ***!
+  \**********************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_8_0_6_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_global_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/_babel-loader@8.0.6@babel-loader/lib??ref--4-0!../../../node_modules/_vue-loader@15.7.1@vue-loader/lib??vue-loader-options!./global_.vue?vue&type=script&lang=js& */ "./node_modules/_babel-loader@8.0.6@babel-loader/lib/index.js?!./node_modules/_vue-loader@15.7.1@vue-loader/lib/index.js?!./resources/js/components/global_.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_8_0_6_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_15_7_1_vue_loader_lib_index_js_vue_loader_options_global_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
 /***/ "./resources/js/components/myList.vue":
 /*!********************************************!*\
   !*** ./resources/js/components/myList.vue ***!
@@ -92197,6 +93167,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var element_ui_lib_theme_chalk_index_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! element-ui/lib/theme-chalk/index.css */ "./node_modules/_element-ui@2.12.0@element-ui/lib/theme-chalk/index.css");
 /* harmony import */ var element_ui_lib_theme_chalk_index_css__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(element_ui_lib_theme_chalk_index_css__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var _store__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./store */ "./resources/js/store/index.js");
+/* harmony import */ var _components_global___WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./components/global_ */ "./resources/js/components/global_.vue");
 window.Vue = __webpack_require__(/*! vue */ "./node_modules/_vue@2.6.10@vue/dist/vue.common.js");
 
 window.axios = __webpack_require__(/*! axios */ "./node_modules/_axios@0.19.0@axios/index.js");
@@ -92204,16 +93175,26 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 
 
+
+Vue.prototype.GLOBAL = _components_global___WEBPACK_IMPORTED_MODULE_4__["default"];
 Vue.use(vue_router__WEBPACK_IMPORTED_MODULE_0__["default"]);
 Vue.use(element_ui__WEBPACK_IMPORTED_MODULE_1___default.a);
 var myList = Vue.component('mylist', __webpack_require__(/*! ./components/myList.vue */ "./resources/js/components/myList.vue")["default"]);
 var activity = Vue.component('activity', __webpack_require__(/*! ./components/activity.vue */ "./resources/js/components/activity.vue")["default"]);
+var checkList = Vue.component('checklist', __webpack_require__(/*! ./components/checkList.vue */ "./resources/js/components/checkList.vue")["default"]);
+var checkActivityList = Vue.component('checklist', __webpack_require__(/*! ./components/checkActivityList.vue */ "./resources/js/components/checkActivityList.vue")["default"]);
 var routes = [{
   path: '/',
   component: myList
 }, {
   path: '/activity',
   component: activity
+}, {
+  path: '/checklist',
+  component: checkList
+}, {
+  path: '/checkactivitylist',
+  component: checkActivityList
 }];
 var router = new vue_router__WEBPACK_IMPORTED_MODULE_0__["default"]({
   routes: routes

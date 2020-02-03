@@ -19,4 +19,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::get('/activities/list','ActivitiesController@list');
 Route::get('/activities/getActivity/{id}', 'ActivitiesController@getActivity');
+Route::get('/activities/getFormtags', 'ActivitiesController@getFormtags');
 Route::post('/images/uploadImgFileApi','ImageController@uploadImgFileApi');
+Route::post('activities/storeActivity', 'ActivitiesController@storeActivity');
+Route::get('/enrollinfos/getEnrollinfos/{activityid}', 'EnrollinfoController@getEnrollinfos');
+Route::get('/enrollinfos/updateReadflag/{id}', 'EnrollinfoController@updateReadflag');

@@ -12,4 +12,13 @@ class Formiteminfo extends Model
      * @var string
      */
     protected $table = 'formiteminfo';
+    protected $fillable = ['info', 'delflag'];
+
+    public function enrollinfo(){
+        return $this->belongsTo('App\Models\Enrollinfo','enrollinfo_id');
+    }
+
+    public function formitem(){
+        return $this->belongsTo('App\Models\Formitem','formitem_id');
+    }
 }

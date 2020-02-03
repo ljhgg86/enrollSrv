@@ -28,7 +28,6 @@ class ImageController extends Controller
         $img->save(public_path($destinationPath.$fileName));
         $upload_prefix = config('enroll.image_url');
         $imageSrcs=$upload_prefix.$fileName;
-   
         return Response::json(
             [
                 'success' => true,
