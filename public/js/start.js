@@ -4172,6 +4172,9 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -76663,16 +76666,7 @@ var render = function() {
             "el-table",
             {
               staticStyle: { width: "100%" },
-              attrs: {
-                data: _vm.lists.filter(function(data) {
-                  return (
-                    !_vm.search ||
-                    data.name.toLowerCase().includes(_vm.search.toLowerCase())
-                  )
-                }),
-                border: "",
-                stripe: ""
-              }
+              attrs: { data: _vm.lists, border: "", stripe: "" }
             },
             [
               _c("el-table-column", {
@@ -76685,7 +76679,25 @@ var render = function() {
               }),
               _vm._v(" "),
               _c("el-table-column", {
-                attrs: { prop: "title", label: "活动名称", align: "center" }
+                attrs: { label: "活动名称", align: "center" },
+                scopedSlots: _vm._u([
+                  {
+                    key: "default",
+                    fn: function(scope) {
+                      return [
+                        _c("el-row", [_vm._v(_vm._s(scope.row.title))]),
+                        _vm._v(" "),
+                        _c("el-row", [
+                          _vm._v(
+                            _vm._s(
+                              "http://gl.strtv.cn/#/activity?id=" + scope.row.id
+                            )
+                          )
+                        ])
+                      ]
+                    }
+                  }
+                ])
               }),
               _vm._v(" "),
               _c("el-table-column", {

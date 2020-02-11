@@ -12,7 +12,7 @@
             </el-button>
         </el-row>
         <el-table
-        :data="lists.filter(data => !search || data.name.toLowerCase().includes(search.toLowerCase()))"
+        :data="lists"
         border
         stripe
         style="width: 100%">
@@ -23,9 +23,12 @@
                 align="center">
             </el-table-column>
             <el-table-column
-                prop="title"
                 label="活动名称"
                 align="center">
+                <template slot-scope="scope">
+                    <el-row>{{ scope.row.title }}</el-row>
+                    <el-row>{{ "http://gl.strtv.cn/#/activity?id="+scope.row.id }}</el-row>
+                </template>
             </el-table-column>
             <el-table-column
                 label="操作"
