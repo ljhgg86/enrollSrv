@@ -1,5 +1,6 @@
 <?php
 return [
-    'image_path' => 'uploads/images/',
-    'image_url' => 'http://127.0.0.1:8000/uploads/images/',
+    //'image_path' => 'uploads/images/',
+    'image_path' => '/data/sttv/web/uploads/enroll/',
+    'image_url' => 'http://gl.strtv.cn/uploads/enroll/',
 ];
