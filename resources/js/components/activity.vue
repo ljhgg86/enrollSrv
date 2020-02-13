@@ -38,7 +38,7 @@
                      <el-row>
                         <el-upload
                         style="color: transparent;"
-                        action="http://127.0.0.1:8000/api/images/uploadImgFileApi"
+                        :action="uploadAction"
                         :file-list="filelist"
                         :show-file-list=false
                         :on-success="uploadSuccess">
@@ -182,6 +182,11 @@
                 activityLine:0,
                 parentsLine:0,//子项排序时需要
                 moveMax:0,
+            }
+        },
+        computed:{
+            uploadAction:function(){
+                return this.GLOBAL.srvUrl+"images/uploadImgFileApi";
             }
         },
         created:function(){

@@ -3654,6 +3654,11 @@ __webpack_require__.r(__webpack_exports__);
       moveMax: 0
     };
   },
+  computed: {
+    uploadAction: function uploadAction() {
+      return this.GLOBAL.srvUrl + "images/uploadImgFileApi";
+    }
+  },
   created: function created() {
     this.activityId = this.$route.query.id;
   },
@@ -3985,7 +3990,6 @@ __webpack_require__.r(__webpack_exports__);
         this.total = parseInt(listsTemp.total);
         this.per_page = parseInt(listsTemp.per_page);
         this.title = listsTemp.title;
-        console.log(this.lists);
       }.bind(this))["catch"](function (error) {}.bind(this));
     },
     indexMethod: function indexMethod(index) {
@@ -4099,7 +4103,8 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-var srvUrl = "http://127.0.0.1:8000/api/";
+//const srvUrl = "http://127.0.0.1:8000/api/";
+var srvUrl = "http://10.16.11.8:7353/api/";
 /* harmony default export */ __webpack_exports__["default"] = ({
   srvUrl: srvUrl
 });
@@ -75768,8 +75773,7 @@ var render = function() {
                       _c("el-upload", {
                         staticStyle: { color: "transparent" },
                         attrs: {
-                          action:
-                            "http://127.0.0.1:8000/api/images/uploadImgFileApi",
+                          action: _vm.uploadAction,
                           "file-list": _vm.filelist,
                           "show-file-list": false,
                           "on-success": _vm.uploadSuccess

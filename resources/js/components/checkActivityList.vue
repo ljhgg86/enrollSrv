@@ -80,7 +80,6 @@
                     this.total = parseInt(listsTemp.total);
                     this.per_page = parseInt(listsTemp.per_page);
                     this.title = listsTemp.title;
-                    console.log(this.lists);
                 }.bind(this))
                 .catch(function(error){
                 }.bind(this));
